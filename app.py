@@ -135,6 +135,24 @@ def home():
     {% endfor %}
 
     </body>
+    <audio id="alertSound" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
+
+<script>
+let lastSignal = "";
+
+function checkSignal(){
+    fetch("/")
+    .then(res => res.text())
+    .then(data => {
+        if(lastSignal !== "" && data !== lastSignal){
+            document.getElementById("alertSound").play();
+        }
+        lastSignal = data;
+    });
+}
+
+setInterval(checkSignal, 10000);
+</script>
     </html>
     """
 
