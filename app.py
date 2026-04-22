@@ -154,6 +154,25 @@ function checkSignal(){
 setInterval(checkSignal, 10000);
 </script>
     </html>
+    <div class="tradingview-widget-container">
+  <div id="tradingview_chart"></div>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<script>
+new TradingView.widget({
+  "width": "100%",
+  "height": 400,
+  "symbol": "FX:EURUSD",
+  "interval": "1",
+  "timezone": "Etc/UTC",
+  "theme": "dark",
+  "style": "1",
+  "locale": "en",
+  "container_id": "tradingview_chart"
+});
+</script>
     """
 
     return render_template_string(html, results=results)
