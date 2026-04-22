@@ -8,16 +8,13 @@ import os
 
 app = Flask(__name__)
 
-pairs = [
-    "EURUSD=X","GBPUSD=X","USDJPY=X","AUDUSD=X","USDCAD=X",
-    "USDCHF=X","NZDUSD=X","EURGBP=X","EURJPY=X","GBPJPY=X"
-]
+pairs = ["EURUSD=X","GBPUSD=X","USDJPY=X","GBPJPY=X"]
 
 def get_signal(symbol):
     df = yf.download(symbol, period="1d", interval="1m")
 
     if df.empty:
-        return None, None
+        return None
 
     close = df["Close"]
     if isinstance(close, pd.DataFrame):
@@ -27,47 +24,39 @@ def get_signal(symbol):
     macd = MACD(close)
     ema = EMAIndicator(close, window=50).ema_indicator()
 
-    last_rsi = rsi.iloc[-1]
-    last_macd = macd.macd_diff().iloc[-1]
-    last_price = close.iloc[-1]
-    last_ema = ema.iloc[-1]
-
-    if last_rsi < 30 and last_macd > 0 and last_price > last_ema:
-        return "BUY", symbol.replace("=X","")
-    elif last_rsi > 70 and last_macd < 0 and last_price < last_ema:
-        return "SELL", symbol.replace("=X","")
+    if rsi.iloc[-1] < 40 and macd.macd_diff().iloc[-1] > 0:
+        return "BUY"
+    elif rsi.iloc[-1] > 60 and macd.macd_diff().iloc[-1] < 0:
+        return "SELL"
     else:
-        return None, None
+        return None
 
 @app.route("/")
 def index():
     results = []
-
     now = datetime.now()
     entry_time = (now + timedelta(minutes=1)).strftime("%H:%M")
 
     for pair in pairs:
-        signal, clean_pair = get_signal(pair)
+        signal = get_signal(pair)
         if signal:
-            results.append((clean_pair, signal))
+            results.append((pair.replace("=X",""), signal))
 
     html = """
     <html>
     <head>
-    <title>🔥 PRO SIGNAL BOT</title>
-
-    <script src="https://s3.tradingview.com/tv.js"></script>
+    <title>🤖 PRO BOT</title>
 
     <style>
-    body { background:#0f172a; color:white; font-family:Arial; text-align:center; }
+    body {background:#0f172a;color:white;font-family:Arial;text-align:center;}
     .card {
         border:2px solid #38bdf8;
         margin:10px;
         padding:15px;
         border-radius:10px;
     }
-    .buy { color:lime; font-size:22px; }
-    .sell { color:red; font-size:22px; }
+    .buy {color:lime;font-size:22px;}
+    .sell {color:red;font-size:22px;}
     </style>
 
     </head>
@@ -76,6 +65,13 @@ def index():
 
     <h1>🤖 PRO SIGNAL BOT</h1>
     <h3>⏱️ Antre: {{time}}</h3>
+
+    <!-- 📊 GRAF KI MACHE 100% -->
+    <div style="margin:20px;">
+        <iframe 
+        src="https://s.tradingview.com/widgetembed/?symbol=FX:EURUSD&interval=1&theme=dark&style=1"
+        width="100%" height="400" frameborder="0"></iframe>
+    </div>
 
     {% for pair, signal in results %}
     <div class="card">
@@ -86,47 +82,8 @@ def index():
         {% else %}
             <p class="sell">🔴 SELL</p>
         {% endif %}
-
-        <!-- 📊 GRAFIK -->
-        <div id="chart_{{pair}}" style="height:300px;"></div>
-
-        <script>
-        new TradingView.widget({
-            "container_id": "chart_{{pair}}",
-            "width": "100%",
-            "height": 300,
-            "symbol": "FX:{{pair}}",
-            "interval": "1",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "toolbar_bg": "#0f172a",
-            "enable_publishing": false,
-            "hide_top_toolbar": true,
-            "hide_legend": true
-        });
-        </script>
-
     </div>
     {% endfor %}
-
-    <!-- 🔔 SOUND -->
-    <audio id="sound" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
-
-    <script>
-    let last = "";
-
-    setInterval(() => {
-        fetch("/")
-        .then(r => r.text())
-        .then(data => {
-            if(last && data !== last){
-                document.getElementById("sound").play();
-            }
-            last = data;
-        });
-    }, 10000);
-    </script>
 
     </body>
     </html>
